@@ -160,6 +160,42 @@ class InnerProductLayer : public Layer<Dtype> {
   Blob<Dtype> bias_multiplier_;
 };
 
+/* ShareBoostLayer
+*/
+template <typename Dtype>
+class ShareBoostLayer : public Layer<Dtype> {
+ public:
+  explicit ShareBoostLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_SHARE_BOOST;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int M_;
+  int K_;
+  int N_;
+  int num_active_cols;
+  bool bias_term_;
+  Blob<Dtype> bias_multiplier_;
+  Blob<Dtype> weigth_fill_;
+  Blob<int> active_cols_;
+};
+
 // Forward declare PoolingLayer and SplitLayer for use in LRNLayer.
 template <typename Dtype> class PoolingLayer;
 template <typename Dtype> class SplitLayer;
