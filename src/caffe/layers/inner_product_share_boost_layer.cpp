@@ -119,6 +119,7 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
     const Dtype* weights_diff = this->blobs_[0]->cpu_diff();
     for (int k = 0; k < K_; k++) {
       Dtype cur_L1 = 0.0;
+      
       for (int n = 0; n < N_; n++) {
 	cur_L1 += abs(weights_diff[n*K_ + k]);
       }
@@ -138,6 +139,19 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
       weights[n*K_ + best_k] = weigth_fill[n*K_ + best_k];
     }
   } // Find and activate a new column in matrix
+  
+  // Zero gradient of inactive columns
+  Dtype* weights_diff = this->blobs_[0]->mutable_cpu_diff();
+  Dtype* bias_diff = this->blobs_[0]->mutable_cpu_diff();
+  for (int k = 0; k < K_; k++) {
+    if (!active_cols_.cpu_data()[k]) {
+      for (int n = 0; n < N_; n++) {
+	weights_diff[n*K_ + k] = 0.0;
+	bias_diff[n*K_ + k] = 0.0;
+      }
+    }
+  }
+  
 }
 
 #ifdef CPU_ONLY
