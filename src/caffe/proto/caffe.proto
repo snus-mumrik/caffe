@@ -464,12 +464,21 @@ message InnerProductParameter {
   optional FillerParameter bias_filler = 4; // The filler for the bias
 }
 
+// Message that stores parameters used by ShareBoost (common for several layers)
+message ShareBoostParameter {
+  optional uint32 num_iterations_per_round = 1; // Number of iterations before adding additional features
+}
+
+message PureShareBoostParameter {
+  optional ShareBoostParameter share_boost_param = 1;
+  optional uint32 num_output = 2; // The number of outputs for the layer (max number of SB rounds)
+  optional FillerParameter weight_filler = 3; // The filler for the weight
+}
+
 // Message that stores parameters used by InnerProductShareBoostLayer
 message InnerProductShareBoostParameter {
-  optional uint32 num_output = 1; // The number of outputs for the layer
-  optional bool bias_term = 2 [default = true]; // whether to have bias terms
-  optional FillerParameter weight_filler = 3; // The filler for the weight
-  optional FillerParameter bias_filler = 4; // The filler for the bias
+  optional ShareBoostParameter share_boost_param = 1;
+  optional InnerProductParameter inner_product_param = 2;
 }
 
 // Message that stores parameters used by LRNLayer

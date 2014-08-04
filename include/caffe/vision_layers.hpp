@@ -190,6 +190,8 @@ class InnerProductShareBoostLayer : public Layer<Dtype> {
   int K_;
   int N_;
   int num_active_cols;
+  int num_iterations_per_round_;
+  int n_passes_;
   bool bias_term_;
   Blob<Dtype> bias_multiplier_;
   Blob<Dtype> weigth_fill_;

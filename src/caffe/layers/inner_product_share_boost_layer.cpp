@@ -15,8 +15,10 @@ template <typename Dtype>
 void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   Layer<Dtype>::SetUp(bottom, top);
-  const int num_output = this->layer_param_.inner_product_share_boost_param().num_output();
-  bias_term_ = this->layer_param_.inner_product_share_boost_param().bias_term();
+  const int num_output = this->layer_param_.inner_product_share_boost_param().inner_product_param().num_output();
+  bias_term_ = this->layer_param_.inner_product_share_boost_param().inner_product_param().bias_term();
+  num_iterations_per_round_ = this->layer_param_.inner_product_share_boost_param().share_boost_param().num_iterations_per_round();
+  n_passes_ = 0;
   // Figure out the dimensions
   M_ = bottom[0]->num();
   K_ = bottom[0]->count() / bottom[0]->num();
@@ -34,29 +36,20 @@ void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& botto
     // Intialize the weight
     // We start with zero actual weights. When the column is activated they will be filled from pre-filled blob
     this->blobs_[0].reset(new Blob<Dtype>(1, 1, N_, K_));
-    // FIXME Do we have to manually set weights to zero? There must be such function somewhere...
-    for (int n = 0; n < N_; n++) {
-      for (int k = 0; k < K_; k++) {
-	this->blobs_[0]->mutable_cpu_data()[n*K_ + k] = 0.0;
-      }
-    }
+    caffe_set(N_*K_, Dtype(0), this->blobs_[0]->mutable_cpu_data());
     weigth_fill_.Reshape(1, 1, N_, K_);
     shared_ptr<Filler<Dtype> > weight_filler(GetFiller<Dtype>(
-        this->layer_param_.inner_product_share_boost_param().weight_filler()));
+        this->layer_param_.inner_product_share_boost_param().inner_product_param().weight_filler()));
     weight_filler->Fill(&weigth_fill_);
     
     num_active_cols = 0;
     active_cols_.Reshape(1, 1, 1, K_);
-    // FIXME Do we have to manually set weights to zero? There must be such function somewhere...
-    for (int k = 0; k < K_; k++) {
-      active_cols_.mutable_cpu_data()[k] = 0;
-    }
-    
+    caffe_set(K_, 0, active_cols_.mutable_cpu_data());
     // If necessary, initialize and fill the bias term
     if (bias_term_) {
       this->blobs_[1].reset(new Blob<Dtype>(1, 1, 1, N_));
       shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
-          this->layer_param_.inner_product_share_boost_param().bias_filler()));
+          this->layer_param_.inner_product_share_boost_param().inner_product_param().bias_filler()));
       bias_filler->Fill(this->blobs_[1].get());
     }
   }  // parameter initialization
@@ -111,19 +104,20 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
   }
   if ((num_active_cols == 0) || 
       ((num_active_cols < K_) &&
-      (true))) { // FIXME Should be zero-gradient check
+      (n_passes_ % num_iterations_per_round_ == 0))) { // TODO Could be zero-gradient check
     // Find and activate a new column in matrix
     Dtype max_L1 = -1.0;
     int best_k = -1;
     // TODO use blas for faster calculation
     const Dtype* weights_diff = this->blobs_[0]->cpu_diff();
     for (int k = 0; k < K_; k++) {
+      if (active_cols_.cpu_data()[k])
+	continue;
       Dtype cur_L1 = 0.0;
-      
-      for (int n = 0; n < N_; n++) {
+      for (int n = 0; n < N_; n++) { // No need to iterate over images in batch because weigths_diff is calculated for the whole batch
 	cur_L1 += abs(weights_diff[n*K_ + k]);
       }
-      if ((cur_L1 > max_L1) && (!active_cols_.cpu_data()[k])) {
+      if (cur_L1 > max_L1) {
 	// This is the new candidate
 	max_L1 = cur_L1;
 	best_k = k;
@@ -152,6 +146,7 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
     }
   }
   
+  n_passes_++;
 }
 
 #ifdef CPU_ONLY
