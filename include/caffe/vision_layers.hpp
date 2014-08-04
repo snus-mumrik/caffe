@@ -189,14 +189,56 @@ class InnerProductShareBoostLayer : public Layer<Dtype> {
   int M_;
   int K_;
   int N_;
-  int num_active_cols;
+  int num_active_features_;
+  int elements_per_feature_; // Number of pixels in input that can be activated simultaneously with [almost] same cost, e.g. a channel. Sets number of columns in matrix that are activated each round.
   int num_iterations_per_round_;
+  int num_input_features_;
   int n_passes_;
   bool bias_term_;
   Blob<Dtype> bias_multiplier_;
   Blob<Dtype> weigth_fill_;
-  Blob<int> active_cols_;
+  Blob<int> active_features_;
 };
+
+/* PureShareBoostLayer
+*/
+template <typename Dtype>
+class PureShareBoostLayer : public Layer<Dtype> {
+ public:
+  explicit PureShareBoostLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_PURE_SHARE_BOOST;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int num_;
+  int channels_;
+  int height_;
+  int width_;
+  int M_;
+  int K_;
+  int N_;
+  int n_passes_;
+  int num_active_inputs_;
+  int num_iterations_per_round_;
+  Blob<int> active_inputs_;
+};
+
 
 // Forward declare PoolingLayer and SplitLayer for use in LRNLayer.
 template <typename Dtype> class PoolingLayer;

@@ -20,9 +20,14 @@ void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& botto
   num_iterations_per_round_ = this->layer_param_.inner_product_share_boost_param().share_boost_param().num_iterations_per_round();
   n_passes_ = 0;
   // Figure out the dimensions
+  elements_per_feature_ = this->layer_param_.inner_product_share_boost_param().share_boost_param().num_elements_per_feature();
+  if (elements_per_feature_ == 0) {
+    elements_per_feature_ = bottom[0]->width() * bottom[0]->height();
+  }
   M_ = bottom[0]->num();
   K_ = bottom[0]->count() / bottom[0]->num();
   N_ = num_output;
+  num_input_features_ = K_ / elements_per_feature_;
   (*top)[0]->Reshape(bottom[0]->num(), num_output, 1, 1);
   // Check if we need to set up the weights
   if (this->blobs_.size() > 0) {
@@ -42,9 +47,9 @@ void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& botto
         this->layer_param_.inner_product_share_boost_param().inner_product_param().weight_filler()));
     weight_filler->Fill(&weigth_fill_);
     
-    num_active_cols = 0;
-    active_cols_.Reshape(1, 1, 1, K_);
-    caffe_set(K_, 0, active_cols_.mutable_cpu_data());
+    num_active_features_ = 0;
+    active_features_.Reshape(1, 1, 1, num_input_features_);
+    caffe_set(num_input_features_, 0, active_features_.mutable_cpu_data());
     // If necessary, initialize and fill the bias term
     if (bias_term_) {
       this->blobs_[1].reset(new Blob<Dtype>(1, 1, 1, N_));
@@ -102,20 +107,22 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
         top_diff, this->blobs_[0]->cpu_data(), (Dtype)0.,
         (*bottom)[0]->mutable_cpu_diff());
   }
-  if ((num_active_cols == 0) || 
-      ((num_active_cols < K_) &&
+  if ((num_active_features_ == 0) || 
+      ((num_active_features_ < num_input_features_) &&
       (n_passes_ % num_iterations_per_round_ == 0))) { // TODO Could be zero-gradient check
     // Find and activate a new column in matrix
     Dtype max_L1 = -1.0;
     int best_k = -1;
     // TODO use blas for faster calculation
     const Dtype* weights_diff = this->blobs_[0]->cpu_diff();
-    for (int k = 0; k < K_; k++) {
-      if (active_cols_.cpu_data()[k])
+    for (int k = 0; k < num_input_features_; k++) {
+      if (active_features_.cpu_data()[k])
 	continue;
       Dtype cur_L1 = 0.0;
       for (int n = 0; n < N_; n++) { // No need to iterate over images in batch because weigths_diff is calculated for the whole batch
-	cur_L1 += abs(weights_diff[n*K_ + k]);
+	for (int edx = 0; edx < elements_per_feature_; edx++) {
+	  cur_L1 += abs(weights_diff[n*K_ + k*elements_per_feature_ + edx]);
+	}
       }
       if (cur_L1 > max_L1) {
 	// This is the new candidate
@@ -124,24 +131,28 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
       }
     }
     CHECK_GE(best_k, 0); // FIXME sanity check, not really needed
-    num_active_cols++;
-    active_cols_.mutable_cpu_data()[best_k] = 1;
+    num_active_features_++;
+    active_features_.mutable_cpu_data()[best_k] = 1;
     Dtype* weights = this->blobs_[0]->mutable_cpu_data();
     const Dtype* weigth_fill = weigth_fill_.cpu_data();
     // Activate the column - fill weights that were zeroes till now
     for (int n = 0; n < N_; n++) {
-      weights[n*K_ + best_k] = weigth_fill[n*K_ + best_k];
+      for (int edx = 0; edx < elements_per_feature_; edx++) {
+	weights[n*K_ + best_k*elements_per_feature_ + edx] = weigth_fill[n*K_ + best_k*elements_per_feature_ + edx]; // TODO mem copy
+      }
     }
   } // Find and activate a new column in matrix
   
   // Zero gradient of inactive columns
   Dtype* weights_diff = this->blobs_[0]->mutable_cpu_diff();
   Dtype* bias_diff = this->blobs_[0]->mutable_cpu_diff();
-  for (int k = 0; k < K_; k++) {
-    if (!active_cols_.cpu_data()[k]) {
+  for (int k = 0; k < num_input_features_; k++) {
+    if (!active_features_.cpu_data()[k]) {
       for (int n = 0; n < N_; n++) {
-	weights_diff[n*K_ + k] = 0.0;
-	bias_diff[n*K_ + k] = 0.0;
+	for (int edx = 0; edx < elements_per_feature_; edx++) {
+	  weights_diff[n*K_ + k*elements_per_feature_ + edx] = 0.0;
+	  bias_diff[n*K_ + k*elements_per_feature_ + edx] = 0.0;
+	}
       }
     }
   }

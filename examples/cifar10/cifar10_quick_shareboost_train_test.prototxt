@@ -146,7 +146,8 @@ layers {
   blobs_lr: 2
   inner_product_share_boost_param {
     share_boost_param {
-      num_iterations_per_round: 300
+      num_iterations_per_round: 5
+      num_elements_per_feature: 0
     }
     inner_product_param {
       num_output: 64
