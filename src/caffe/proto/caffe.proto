@@ -179,7 +179,7 @@ message NetStateRule {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available ID: 35 (last added: share_boost_param)
+// LayerParameter next available ID: 35 (last added: inner_product_share_boost_param)
 message LayerParameter {
   repeated string bottom = 2; // the name of the bottom blobs
   repeated string top = 3; // the name of the top blobs
@@ -200,7 +200,7 @@ message LayerParameter {
   // line above the enum. Update the next available ID when you add a new
   // LayerType.
   //
-  // LayerType next available ID: 35 (last added: SHARE_BOOST)
+  // LayerType next available ID: 35 (last added: INNER_PRODUCT_SHARE_BOOST)
   enum LayerType {
     // "NONE" layer type is 0th enum element so that we don't cause confusion
     // by defaulting to an existent LayerType (instead, should usually error if
@@ -230,7 +230,7 @@ message LayerParameter {
     POOLING = 17;
     POWER = 26;
     RELU = 18;
-    SHARE_BOOST = 34;
+    INNER_PRODUCT_SHARE_BOOST = 34;
     SIGMOID = 19;
     SIGMOID_CROSS_ENTROPY_LOSS = 27;
     SOFTMAX = 20;
@@ -285,7 +285,7 @@ message LayerParameter {
   optional ThresholdParameter threshold_param = 25;
   optional HingeLossParameter hinge_loss_param = 29;
   optional SliceParameter slice_param = 31;
-  optional ShareBoostParameter share_boost_param = 34;
+  optional InnerProductShareBoostParameter inner_product_share_boost_param = 34;
 
   // DEPRECATED: The layer parameters specified as a V0LayerParameter.
   // This should never be used by any code except to upgrade to the new
@@ -464,8 +464,8 @@ message InnerProductParameter {
   optional FillerParameter bias_filler = 4; // The filler for the bias
 }
 
-// Message that stores parameters used by InnerProductLayer
-message ShareBoostParameter {
+// Message that stores parameters used by InnerProductShareBoostLayer
+message InnerProductShareBoostParameter {
   optional uint32 num_output = 1; // The number of outputs for the layer
   optional bool bias_term = 2 [default = true]; // whether to have bias terms
   optional FillerParameter weight_filler = 3; // The filler for the weight

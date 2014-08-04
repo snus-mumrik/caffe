@@ -160,18 +160,18 @@ class InnerProductLayer : public Layer<Dtype> {
   Blob<Dtype> bias_multiplier_;
 };
 
-/* ShareBoostLayer
+/* InnerProductShareBoostLayer
 */
 template <typename Dtype>
-class ShareBoostLayer : public Layer<Dtype> {
+class InnerProductShareBoostLayer : public Layer<Dtype> {
  public:
-  explicit ShareBoostLayer(const LayerParameter& param)
+  explicit InnerProductShareBoostLayer(const LayerParameter& param)
       : Layer<Dtype>(param) {}
   virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
 
   virtual inline LayerParameter_LayerType type() const {
-    return LayerParameter_LayerType_SHARE_BOOST;
+    return LayerParameter_LayerType_INNER_PRODUCT_SHARE_BOOST;
   }
   virtual inline int ExactNumBottomBlobs() const { return 1; }
   virtual inline int ExactNumTopBlobs() const { return 1; }

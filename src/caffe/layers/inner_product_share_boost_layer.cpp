@@ -12,11 +12,11 @@
 namespace caffe {
 
 template <typename Dtype>
-void ShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
+void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   Layer<Dtype>::SetUp(bottom, top);
-  const int num_output = this->layer_param_.share_boost_param().num_output();
-  bias_term_ = this->layer_param_.inner_product_param().bias_term();
+  const int num_output = this->layer_param_.inner_product_share_boost_param().num_output();
+  bias_term_ = this->layer_param_.inner_product_share_boost_param().bias_term();
   // Figure out the dimensions
   M_ = bottom[0]->num();
   K_ = bottom[0]->count() / bottom[0]->num();
@@ -42,7 +42,7 @@ void ShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
     }
     weigth_fill_.Reshape(1, 1, N_, K_);
     shared_ptr<Filler<Dtype> > weight_filler(GetFiller<Dtype>(
-        this->layer_param_.inner_product_param().weight_filler()));
+        this->layer_param_.inner_product_share_boost_param().weight_filler()));
     weight_filler->Fill(&weigth_fill_);
     
     num_active_cols = 0;
@@ -56,7 +56,7 @@ void ShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
     if (bias_term_) {
       this->blobs_[1].reset(new Blob<Dtype>(1, 1, 1, N_));
       shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
-          this->layer_param_.inner_product_param().bias_filler()));
+          this->layer_param_.inner_product_share_boost_param().bias_filler()));
       bias_filler->Fill(this->blobs_[1].get());
     }
   }  // parameter initialization
@@ -69,7 +69,7 @@ void ShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
 }
 
 template <typename Dtype>
-Dtype ShareBoostLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+Dtype InnerProductShareBoostLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     vector<Blob<Dtype>*>* top) {
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = (*top)[0]->mutable_cpu_data();
@@ -85,7 +85,7 @@ Dtype ShareBoostLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 }
 
 template <typename Dtype>
-void ShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
+void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
     vector<Blob<Dtype>*>* bottom) {
   if (this->param_propagate_down_[0]) {
@@ -141,9 +141,9 @@ void ShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 }
 
 #ifdef CPU_ONLY
-STUB_GPU(ShareBoostLayer);
+STUB_GPU(InnerProductShareBoostLayer);
 #endif
 
-INSTANTIATE_CLASS(ShareBoostLayer);
+INSTANTIATE_CLASS(InnerProductShareBoostLayer);
 
 }  // namespace caffe

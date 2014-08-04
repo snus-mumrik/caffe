@@ -139,12 +139,12 @@ layers {
 }
 layers {
   name: "ip1"
-  type: SHARE_BOOST
+  type: INNER_PRODUCT_SHARE_BOOST
   bottom: "pool3"
   top: "ip1"
   blobs_lr: 1
   blobs_lr: 2
-  share_boost_param {
+  inner_product_share_boost_param {
     num_output: 64
     weight_filler {
       type: "gaussian"
