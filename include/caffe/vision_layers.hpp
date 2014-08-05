@@ -62,6 +62,59 @@ class ConvolutionLayer : public Layer<Dtype> {
   int N_;
 };
 
+/* ConvolutionShareBoostLayer
+*/
+template <typename Dtype>
+class ConvolutionShareBoostLayer : public Layer<Dtype> {
+ public:
+  explicit ConvolutionShareBoostLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_CONVOLUTION_SHARE_BOOST;
+  }
+  virtual inline int MinBottomBlobs() const { return 1; }
+  virtual inline int MinTopBlobs() const { return 1; }
+  virtual inline bool EqualNumBottomTopBlobs() const { return true; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int kernel_h_, kernel_w_;
+  int stride_h_, stride_w_;
+  int num_;
+  int channels_;
+  int pad_h_, pad_w_;
+  int height_;
+  int width_;
+  int num_output_;
+  int group_;
+  Blob<Dtype> col_buffer_;
+  Blob<Dtype> bias_multiplier_;
+  bool bias_term_;
+  int M_;
+  int K_;
+  int N_;
+  
+  int max_num_of_rounds_;
+  int num_active_features_;
+  int elements_per_feature_; // Number of pixels in input that can be activated simultaneously with [almost] same cost, e.g. a channel. Sets number of columns in matrix that are activated each round.
+  int num_iterations_per_round_;
+  int num_input_features_;
+  int n_passes_;
+  Blob<Dtype> weigth_fill_;
+  Blob<int> active_features_;
+};
+
 /* EltwiseLayer
   Compute elementwise operations like product or sum.
 */
@@ -189,6 +242,7 @@ class InnerProductShareBoostLayer : public Layer<Dtype> {
   int M_;
   int K_;
   int N_;
+  int max_num_of_rounds_;
   int num_active_features_;
   int elements_per_feature_; // Number of pixels in input that can be activated simultaneously with [almost] same cost, e.g. a channel. Sets number of columns in matrix that are activated each round.
   int num_iterations_per_round_;

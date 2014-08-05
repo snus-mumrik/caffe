@@ -21,7 +21,7 @@ void PureShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
 	num_iterations_per_round_ = this->layer_param_.pure_share_boost_param().share_boost_param().num_iterations_per_round();
 	max_num_of_rounds_ = this->layer_param_.pure_share_boost_param().share_boost_param().max_num_of_rounds();
 	weight_off_value_ = this->layer_param_.pure_share_boost_param().weight_off_value();
-	random_test_ = this->layer_param_.pure_share_boost_param().random_test();
+	random_test_ = this->layer_param_.pure_share_boost_param().share_boost_param().random_test();
 	// Figure out the dimensions
 	M_ = bottom[0]->num(); // Number of batches
 	K_ = bottom[0]->count() / bottom[0]->num(); // Number of inputs (per-batch)

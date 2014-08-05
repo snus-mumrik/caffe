@@ -55,6 +55,8 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new InfogainLossLayer<Dtype>(param);
   case LayerParameter_LayerType_INNER_PRODUCT:
     return new InnerProductLayer<Dtype>(param);
+  case LayerParameter_LayerType_CONVOLUTION_SHARE_BOOST:
+    return new ConvolutionShareBoostLayer<Dtype>(param);
   case LayerParameter_LayerType_INNER_PRODUCT_SHARE_BOOST:
     return new InnerProductShareBoostLayer<Dtype>(param);
   case LayerParameter_LayerType_PURE_SHARE_BOOST:
