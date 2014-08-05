@@ -17,6 +17,7 @@ template <typename Dtype>
 void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   Layer<Dtype>::SetUp(bottom, top);
+  bool random_test = this->layer_param_.inner_product_share_boost_param().share_boost_param().random_test();
   const int num_output = this->layer_param_.inner_product_share_boost_param().inner_product_param().num_output();
   bias_term_ = this->layer_param_.inner_product_share_boost_param().inner_product_param().bias_term();
   num_iterations_per_round_ = this->layer_param_.inner_product_share_boost_param().share_boost_param().num_iterations_per_round();
@@ -30,7 +31,13 @@ void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& botto
   K_ = bottom[0]->count() / bottom[0]->num();
   N_ = num_output;
   num_input_features_ = K_ / elements_per_feature_;
+  
   (*top)[0]->Reshape(bottom[0]->num(), num_output, 1, 1);
+  
+  max_num_of_rounds_ = this->layer_param_.inner_product_share_boost_param().share_boost_param().max_num_of_rounds();
+  if (max_num_of_rounds_ == 0) {
+    max_num_of_rounds_ = num_input_features_;
+  }
   // Check if we need to set up the weights
   if (this->blobs_.size() > 0) {
     LOG(INFO) << "Skipping parameter initialization";
@@ -52,6 +59,19 @@ void InnerProductShareBoostLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& botto
     num_active_features_ = 0;
     active_features_.Reshape(1, 1, 1, num_input_features_);
     caffe_set(num_input_features_, 0, active_features_.mutable_cpu_data());
+    if (random_test) {
+      num_active_features_ = max_num_of_rounds_;
+      caffe_set(num_active_features_, 1, active_features_.mutable_cpu_data());
+      Dtype* weights = this->blobs_[0]->mutable_cpu_data();
+      const Dtype* weigth_fill = weigth_fill_.cpu_data();
+      for (int n = 0; n < N_; n++) {
+	for (int k = 0; k < num_active_features_; k++) {
+	  for (int edx = 0; edx < elements_per_feature_; edx++) {
+	    weights[n*K_ + k*elements_per_feature_ + edx] = weigth_fill[n*K_ + k*elements_per_feature_ + edx]; // TODO mem copy
+	  }
+	}
+      }      
+    }
     // If necessary, initialize and fill the bias term
     if (bias_term_) {
       this->blobs_[1].reset(new Blob<Dtype>(1, 1, 1, N_));
@@ -110,7 +130,7 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
         (*bottom)[0]->mutable_cpu_diff());
   }
   if ((num_active_features_ == 0) || 
-      ((num_active_features_ < num_input_features_) &&
+      ((num_active_features_ < max_num_of_rounds_) &&
       (n_passes_ % num_iterations_per_round_ == 0))) { // TODO Could be zero-gradient check
     // Find and activate a new column in matrix
     int best_k = -1;
