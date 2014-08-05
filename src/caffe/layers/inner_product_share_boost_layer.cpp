@@ -9,6 +9,8 @@
 #include "caffe/vision_layers.hpp"
 #include "caffe/util/math_functions.hpp"
 
+#include <iostream>
+
 namespace caffe {
 
 template <typename Dtype>
@@ -111,26 +113,33 @@ void InnerProductShareBoostLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>
       ((num_active_features_ < num_input_features_) &&
       (n_passes_ % num_iterations_per_round_ == 0))) { // TODO Could be zero-gradient check
     // Find and activate a new column in matrix
-    Dtype max_L1 = -1.0;
     int best_k = -1;
-    // TODO use blas for faster calculation
-    const Dtype* weights_diff = this->blobs_[0]->cpu_diff();
-    for (int k = 0; k < num_input_features_; k++) {
-      if (active_features_.cpu_data()[k])
-	continue;
-      Dtype cur_L1 = 0.0;
-      for (int n = 0; n < N_; n++) { // No need to iterate over images in batch because weigths_diff is calculated for the whole batch
-	for (int edx = 0; edx < elements_per_feature_; edx++) {
-	  cur_L1 += abs(weights_diff[n*K_ + k*elements_per_feature_ + edx]);
+    if (this->layer_param_.inner_product_share_boost_param().share_boost_param().choose_at_random()) {
+      best_k = num_active_features_;
+      CHECK_EQ(active_features_.cpu_data()[best_k], 0);
+    } else {
+      Dtype max_L1 = -1.0;
+      // TODO use blas for faster calculation
+      const Dtype* weights_diff = this->blobs_[0]->cpu_diff();
+      for (int k = 0; k < num_input_features_; k++) {
+	if (active_features_.cpu_data()[k])
+	  continue;
+	Dtype cur_L1 = 0.0;
+	for (int n = 0; n < N_; n++) { // No need to iterate over images in batch because weigths_diff is calculated for the whole batch
+	  for (int edx = 0; edx < elements_per_feature_; edx++) {
+	    cur_L1 += fabs(weights_diff[n*K_ + k*elements_per_feature_ + edx]);
+	  }
+	}
+	if (cur_L1 > max_L1) {
+	  // This is the new candidate
+	  max_L1 = cur_L1;
+	  best_k = k;
 	}
       }
-      if (cur_L1 > max_L1) {
-	// This is the new candidate
-	max_L1 = cur_L1;
-	best_k = k;
-      }
     }
+
     CHECK_GE(best_k, 0); // FIXME sanity check, not really needed
+    std::cerr << "activaiting k: " << best_k << '\n';
     num_active_features_++;
     active_features_.mutable_cpu_data()[best_k] = 1;
     Dtype* weights = this->blobs_[0]->mutable_cpu_data();

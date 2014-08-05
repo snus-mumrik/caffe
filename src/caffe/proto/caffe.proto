@@ -471,6 +471,7 @@ message ShareBoostParameter {
   optional uint32 num_iterations_per_round = 1; // Number of iterations before adding additional features
   optional uint32 num_elements_per_feature = 2 [default = 0]; // Number of elements (pixels) in input that can be activated simultaneously with [almost] same cost. If 0 then it's the size of channel.
   optional uint32 max_num_of_rounds = 3;
+  optional bool choose_at_random = 4 [default = false]; // Activate features one by one without estimating which one is the best, just by order
 }
 
 message PureShareBoostParameter {
