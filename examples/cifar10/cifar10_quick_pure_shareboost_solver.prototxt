@@ -15,11 +15,11 @@ weight_decay: 0.004
 # The learning rate policy
 lr_policy: "fixed"
 # Display every 100 iterations
-display: 100
+display: 500
 # The maximum number of iterations
-max_iter: 1000
+max_iter: 10000
 # snapshot intermediate results
 snapshot: 4000
 snapshot_prefix: "cifar10_quick_pure_sb"
 # solver mode: CPU or GPU
-solver_mode: CPU
+solver_mode: GPU

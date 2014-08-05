@@ -226,17 +226,15 @@ class PureShareBoostLayer : public Layer<Dtype> {
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
 
-  int num_;
-  int channels_;
-  int height_;
-  int width_;
   int M_;
   int K_;
   int N_;
-  int n_passes_;
   int num_active_inputs_;
+  int max_num_of_rounds_;
   int num_iterations_per_round_;
-  Blob<int> active_inputs_;
+  int n_passes_;
+  bool random_test_;
+  Dtype weight_off_value_;
 };
 
 

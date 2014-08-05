@@ -470,12 +470,14 @@ message InnerProductParameter {
 message ShareBoostParameter {
   optional uint32 num_iterations_per_round = 1; // Number of iterations before adding additional features
   optional uint32 num_elements_per_feature = 2 [default = 0]; // Number of elements (pixels) in input that can be activated simultaneously with [almost] same cost. If 0 then it's the size of channel.
+  optional uint32 max_num_of_rounds = 3;
 }
 
 message PureShareBoostParameter {
   optional ShareBoostParameter share_boost_param = 1;
   optional uint32 num_output = 2; // The number of outputs for the layer (max number of SB rounds)
-  optional FillerParameter weight_filler = 3; // The filler for the weight
+  optional float weight_off_value = 3 [default = 0.01]; // The weight to be given to an input that we like to turn off
+  optional bool random_test = 4 [default = false]; // on a random test we allow 'max_num_of_rounds' random inputs to go through
 }
 
 // Message that stores parameters used by InnerProductShareBoostLayer

@@ -19,7 +19,7 @@ layers {
   data_param {
     source: "cifar10-leveldb/cifar-test-leveldb"
     mean_file: "mean.binaryproto"
-    batch_size: 100
+    batch_size: 10
   }
   include: { phase: TEST }
 }
@@ -141,18 +141,15 @@ layers {
   name: "sb1"
   type: PURE_SHARE_BOOST
   bottom: "pool3"
-  top: "sb1"
+  top: "sb1" 
   blobs_lr: 1
-  blobs_lr: 2
   pure_share_boost_param {
-    share_boost_param {
-      num_iterations_per_round: 5
-    }
-    num_output: 64
-    weight_filler {
-      type: "gaussian"
-      std: 0.1
-    }
+    random_test: true
+    weight_off_value: 0.001
+  	share_boost_param {
+     	 num_iterations_per_round: 50
+     	 max_num_of_rounds: 100
+  	}
   }
 }
 layers {
